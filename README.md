@@ -1,6 +1,9 @@
 # vk-helpers
 
-✨ VKontakte Utility CLI for archive data that allows you to delete all comments or download images from albums really fast.
+✨ CLI for archive data from VKontakte, allowing you to very quickly delete all comments or download images from albums.
+
+# Example
+<img src="https://github.com/user-attachments/assets/d110cf1a-9220-477d-a8ad-0836f71a678e" width="512"> 
 
 ## Overview
 
