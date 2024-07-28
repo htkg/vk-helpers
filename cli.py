@@ -278,7 +278,7 @@ async def main():
             if not access_token:
                 raise ValueError(f"{Fore.RED}Error: access_token is required for deleting comments.{Style.RESET_ALL}")
 
-            exclude_ids = input(f"{Fore.CYAN}Enter group/user IDs to exclude (comma-separated, e.g., -108958540,182582439): {Style.RESET_ALL}")
+            exclude_ids = input(f"{Fore.CYAN}Enter group/user IDs to exclude (comma-separated, e.g., -123456789,123456789): {Style.RESET_ALL}")
             exclude_ids = [id.strip() for id in exclude_ids.split(',') if id.strip()]
 
             sleep_time = input(f"{Fore.CYAN}Enter the sleep time between API requests in seconds (default: 1): {Style.RESET_ALL}") or 1
