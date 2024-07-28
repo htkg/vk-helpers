@@ -2,6 +2,8 @@
 
 ✨ CLI for archive data from VKontakte, allowing you to very quickly delete all comments or download images from albums.
 
+It takes 1 minute to delete 2700 comments. However, it can be potentially be faster if you specify sleep time parameter is less than 1.
+
 # Example
 <img src=https://github.com/user-attachments/assets/8bd7659d-01ec-4ff9-bea0-8631c295815e width="512"> 
 
