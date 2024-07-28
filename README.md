@@ -21,9 +21,10 @@ To use this utility, you need to have Python installed. Install the required pac
 pip install -r requirements.txt
 ```
 
-Before executing the script make sure that you have downloaded your archive with comments and photos export enabled.
-You can request VK archive [here](https://vk.com/data_protection?section=rules&scroll_to_archive=1)
+## Mandatory Prerequisites
 
+1. Before executing the script make sure that you have downloaded your archive with comments and photos export enabled. You can request VK archive [here](https://vk.com/data_protection?section=rules&scroll_to_archive=1).
+2. If you are planning on removing comments, get access token [here](https://vkhost.github.io/). Recommended app to choice is VK Admin. 
 
 ## Usage
 
