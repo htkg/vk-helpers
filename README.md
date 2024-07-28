@@ -21,6 +21,10 @@ To use this utility, you need to have Python installed. Install the required pac
 pip install -r requirements.txt
 ```
 
+Before executing the script make sure that you have downloaded your archive with comments and photos export enabled.
+You can request VK archive [here](https://vk.com/data_protection?section=rules&scroll_to_archive=1)
+
+
 ## Usage
 
 ### Running the CLI
