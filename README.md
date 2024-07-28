@@ -25,6 +25,7 @@ pip install -r requirements.txt
 
 1. Before executing the script make sure that you have downloaded your archive with comments and photos export enabled. You can request VK archive [here](https://vk.com/data_protection?section=rules&scroll_to_archive=1).
 2. If you are planning on removing comments, get access token [here](https://vkhost.github.io/). Recommended app to choice is VK Admin. 
+3. After redirection you have to get access_token from URL in the browser address bar. It would look like this: *https://oauth.vk.com/blank.html#access_token=vk1.a.fYh6oDz...*. You should copy & save that string before *&expires*. 
 
 ## Usage
 
