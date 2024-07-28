@@ -251,7 +251,7 @@ async def main():
 
     try:
         if mode == '1':
-            input_file = input(f"{Fore.CYAN}Enter the path to the HTML file containing the images (Example: Archive/photos/photo-albums): {Style.RESET_ALL}")
+            input_file = input(f"{Fore.CYAN}Enter the path to the HTML file containing the images (Example: Archive/photos/photo-albums/-15.html): {Style.RESET_ALL}")
             input_file = Validator.validate_input_dir(input_file, mode)
 
             output_dir = input(f"{Fore.CYAN}Enter the directory to save downloaded images (default: downloaded_images): {Style.RESET_ALL}") or "downloaded_images"
@@ -272,7 +272,7 @@ async def main():
             input_dir = input(f"{Fore.CYAN}Enter the directory containing the HTML files for comment deletion (Example: Archive/comments): {Style.RESET_ALL}")
             input_dir = Validator.validate_input_dir(input_dir, mode)
 
-            output_file = input(f"{Fore.CYAN}Enter the output file to store the extracted wall ID (default: to_delete_comment_ids.txt): {Style.RESET_ALL}") or "to_delete_comment_ids.txt"
+            output_file = input(f"{Fore.CYAN}Enter the output file to store the extracted wall ID. Should end with .txt. (default: to_delete_comment_ids.txt): {Style.RESET_ALL}") or "to_delete_comment_ids.txt"
             access_token = input(f"{Fore.CYAN}Enter the VK API access token for deleting comments: {Style.RESET_ALL}")
 
             if not access_token:
