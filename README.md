@@ -35,6 +35,8 @@ Execute the script via a terminal:
 python cli.py
 ```
 
+Otherwise, you can use executables that could be found [here](https://github.com/htkg/vk-helpers/releases)
+
 You will be prompted to select a mode and provide necessary inputs.
 
 ### Modes
