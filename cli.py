@@ -1,11 +1,8 @@
 import asyncio
 import os
 import re
-import time
 from urllib.parse import urlparse
-
 import httpx
-import requests
 from bs4 import BeautifulSoup
 from colorama import init, Fore, Style
 from tqdm import tqdm
@@ -111,6 +108,7 @@ class CommentDeleter:
     def chunk_list(lst: List[str], chunk_size: int):
         for i in range(0, len(lst), chunk_size):
             yield lst[i:i + chunk_size]
+
     def build_vk_execute_code(self, wall_ids: List[str]) -> List[str]:
         execute_commands = []
         for batch in self.chunk_list(wall_ids, 25):
@@ -121,7 +119,7 @@ class CommentDeleter:
             execute_commands.append(f'return [{",".join(execute_code)}];')
         return execute_commands
 
-    def execute_vk_command(self, command: str) -> Dict:
+    async def execute_vk_command(self, command: str) -> Dict:
         url = "https://api.vk.com/method/execute"
         params = {
             "access_token": self.access_token,
@@ -129,14 +127,15 @@ class CommentDeleter:
             "code": command
         }
 
-        response = requests.get(url, params=params)
+        async with httpx.AsyncClient() as client:
+            response = await client.get(url, params=params)
 
         if response.status_code == 200:
             return response.json()
         else:
             response.raise_for_status()
 
-    def delete_comments(self, input_dir: str, output_file: str) -> None:
+    async def delete_comments(self, input_dir: str, output_file: str) -> None:
         wall_ids = []
 
         for filename in os.listdir(input_dir):
@@ -168,7 +167,7 @@ class CommentDeleter:
 
         with tqdm(total=len(execute_codes), desc="Deleting comments", unit="batch") as pbar:
             for command in execute_codes:
-                result = self.execute_vk_command(command)
+                result = await self.execute_vk_command(command)
                 if 'response' in result:
                     successful = result['response'].count(True)
                     failed = result['response'].count(False)
@@ -177,7 +176,7 @@ class CommentDeleter:
                     print(f"{Fore.GREEN} Successfully deleted {successful} comments; {Fore.YELLOW}Failed to delete {failed} comments (possibly already deleted or in closed group/page).{Style.RESET_ALL}")
                 else:
                     print(f"{Fore.RED}Error in API response: {result}{Style.RESET_ALL}")
-                time.sleep(self.sleep_time)
+                await asyncio.sleep(self.sleep_time)
                 pbar.update(1)
 
         print(f"\n{Fore.GREEN}Final Summary:{Style.RESET_ALL}")
@@ -286,7 +285,7 @@ async def main():
             sleep_time = Validator.validate_sleep_time(sleep_time)
 
             deleter = CommentDeleter(access_token, sleep_time, exclude_ids)
-            deleter.delete_comments(input_dir, output_file)
+            await deleter.delete_comments(input_dir, output_file)
 
     except ValueError as e:
         print(f"{Fore.RED}{str(e)}{Style.RESET_ALL}")
@@ -294,5 +293,3 @@ async def main():
 
 if __name__ == "__main__":
     asyncio.run(main())
-
-
