@@ -290,6 +290,9 @@ async def main():
     except ValueError as e:
         print(f"{Fore.RED}{str(e)}{Style.RESET_ALL}")
 
+    finally:
+        input(f"{Fore.CYAN}Press Enter to exit...{Style.RESET_ALL}")
+
 
 if __name__ == "__main__":
     asyncio.run(main())
