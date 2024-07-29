@@ -9,6 +9,7 @@ from typing import Union, List, Dict, Tuple
 
 init()
 
+
 class ImageDownloader:
     def __init__(self, output_dir: str, batch_size: int, retries: int, encoding: str):
         self.output_dir = output_dir
@@ -18,11 +19,12 @@ class ImageDownloader:
 
     @staticmethod
     def sanitize_filename(filename: str) -> str:
-        return re.sub(r'[<>:"/\\|?*]', '', filename)
+        return re.sub(r'[<>:"/\\|?*]', "", filename)
 
     @staticmethod
     def get_filename_from_url(url: str) -> str:
         path = urlparse(url).path
+
         filename = os.path.basename(path)
         return ImageDownloader.sanitize_filename(filename)
 
@@ -47,10 +49,7 @@ class ImageDownloader:
 
     async def process_batch(self, batch: list, pbar: tqdm):
         async with httpx.AsyncClient() as client:
-            tasks = [
-                self.download_image(client, img_url)
-                for img_url in batch
-            ]
+            tasks = [self.download_image(client, img_url) for img_url in batch]
             await asyncio.gather(*tasks)
             pbar.update(len(batch))
 
@@ -66,12 +65,10 @@ class ImageDownloader:
 
         with tqdm(total=len(img_tags), desc="Downloading images", unit="img") as pbar:
             for i in range(0, len(img_tags), self.batch_size):
-                batch = img_tags[i:i + self.batch_size]
+                batch = img_tags[i : i + self.batch_size]
                 await self.process_batch(batch, pbar)
 
         print(f"{Fore.GREEN}All images have been downloaded.{Style.RESET_ALL}")
-
-
 
 
 class CommentDeleter:
@@ -82,45 +79,38 @@ class CommentDeleter:
 
     @staticmethod
     def parse_html_file(file_path: str) -> None:
-        with open(file_path, 'r', encoding='windows-1251') as file:
+        with open(file_path, "r", encoding="windows-1251") as file:
             content = file.read()
-        
+
         pattern = r'href="https://vk\.com/(wall-?\d+_\d+(?:\?reply=\d+(?:&thread=\d+)?)?)"'
         matches = re.findall(pattern, content)
         return matches
 
     @staticmethod
     def extract_comment_details(wall_id: str) -> Tuple[str, str]:
-        parts = wall_id.split('_')
-        owner_id = parts[0].replace('wall', '')
-        if '?reply=' in parts[1]:
-            comment_id = parts[1].split('?reply=')[1].split("&")[0]
+        parts = wall_id.split("_")
+        owner_id = parts[0].replace("wall", "")
+        if "?reply=" in parts[1]:
+            comment_id = parts[1].split("?reply=")[1].split("&")[0]
         else:
-            comment_id = parts[1].split('?')[0]
+            comment_id = parts[1].split("?")[0]
         return owner_id, comment_id
 
     @staticmethod
     def chunk_list(lst: List[str], chunk_size: int):
         for i in range(0, len(lst), chunk_size):
-            yield lst[i:i + chunk_size]
+            yield lst[i : i + chunk_size]
 
     def build_vk_execute_code(self, wall_ids: List[str]) -> List[str]:
         execute_commands = []
         for batch in self.chunk_list(wall_ids, 25):
-            execute_code = [
-                f'API.wall.deleteComment({{"owner_id": {self.extract_comment_details(wall_id)[0]}, "comment_id": {self.extract_comment_details(wall_id)[1]}}})'
-                for wall_id in batch
-            ]
+            execute_code = [f'API.wall.deleteComment({{"owner_id": {self.extract_comment_details(wall_id)[0]}, "comment_id": {self.extract_comment_details(wall_id)[1]}}})' for wall_id in batch]
             execute_commands.append(f'return [{",".join(execute_code)}];')
         return execute_commands
 
     async def execute_vk_command(self, command: str) -> Dict:
         url = "https://api.vk.com/method/execute"
-        params = {
-            "access_token": self.access_token,
-            "v": "5.131",
-            "code": command
-        }
+        params = {"access_token": self.access_token, "v": "5.131", "code": command}
 
         async with httpx.AsyncClient() as client:
             response = await client.get(url, params=params)
@@ -133,24 +123,21 @@ class CommentDeleter:
     async def delete_comments(self, input_dir: str, output_file: str) -> None:
         wall_ids = []
         for filename in os.listdir(input_dir):
-            if filename.endswith('.html'):
+            if filename.endswith(".html"):
                 wall_ids.extend(self.parse_html_file(os.path.join(input_dir, filename)))
 
-        filtered_wall_ids = [
-            wall_id for wall_id in wall_ids 
-            if not any(exclude_id in wall_id.split('_')[0] for exclude_id in self.exclude_ids)
-        ]
+        filtered_wall_ids = [wall_id for wall_id in wall_ids if not any(exclude_id in wall_id.split("_")[0] for exclude_id in self.exclude_ids)]
 
-        with open(output_file, 'w', encoding='utf-8') as file:
+        with open(output_file, "w", encoding="utf-8") as file:
             for wall_id in filtered_wall_ids:
-                file.write(wall_id + '\n')
+                file.write(wall_id + "\n")
 
         print(f"{Fore.GREEN}Extracted {len(filtered_wall_ids)} wall IDs to {output_file}{Style.RESET_ALL}")
 
         print(f"{Fore.YELLOW}Review the wall IDs in file {output_file} that will be deleted.{Style.RESET_ALL}")
         proceed = input(f"{Fore.CYAN}Do you want to proceed with the deletion (yes/no)? {Style.RESET_ALL}")
 
-        if proceed.lower() != 'yes':
+        if proceed.lower() != "yes":
             print(f"{Fore.RED}Deletion process aborted by the user.{Style.RESET_ALL}")
             return
 
@@ -162,9 +149,9 @@ class CommentDeleter:
         with tqdm(total=len(execute_codes), desc="Deleting comments", unit="batch") as pbar:
             for command in execute_codes:
                 result = await self.execute_vk_command(command)
-                if 'response' in result:
-                    successful = result['response'].count(True)
-                    failed = result['response'].count(False)
+                if "response" in result:
+                    successful = result["response"].count(True)
+                    failed = result["response"].count(False)
                     total_successful += successful
                     total_failed += failed
                     print(f"{Fore.GREEN} Successfully deleted {successful} comments; {Fore.YELLOW}Failed to delete {failed} comments (possibly already deleted or in closed group/page).{Style.RESET_ALL}")
@@ -180,19 +167,18 @@ class CommentDeleter:
 
 
 class Validator:
-
     @staticmethod
     def validate_input_dir(input_dir: str, mode: str) -> str:
         input_dir = input_dir.strip('"')
         if not os.path.exists(input_dir):
             raise ValueError(f"{Fore.RED}The specified input path does not exist.{Style.RESET_ALL}")
 
-        if mode == '1' and not input_dir.lower().endswith('.html'):
+        if mode == "1" and not input_dir.lower().endswith(".html"):
             raise ValueError(f"{Fore.RED}For mode 1, input_dir should be a single .html file.{Style.RESET_ALL}")
-        elif mode == '2':
+        elif mode == "2":
             if not os.path.isdir(input_dir):
                 raise ValueError(f"{Fore.RED}For mode 2, input_dir should be a directory containing .html files, not a specific file.{Style.RESET_ALL}")
-            html_files = [f for f in os.listdir(input_dir) if f.lower().endswith('.html')]
+            html_files = [f for f in os.listdir(input_dir) if f.lower().endswith(".html")]
             if not html_files:
                 raise ValueError(f"{Fore.RED}The input directory for mode 2 should contain at least one .html file.{Style.RESET_ALL}")
 
@@ -240,12 +226,12 @@ async def main():
     print(f"{Fore.YELLOW}[2] Delete all comments{Style.RESET_ALL}")
     mode = input(f"{Fore.CYAN}Enter the number corresponding to the mode: {Style.RESET_ALL}")
 
-    if mode not in ['1', '2']:
+    if mode not in ["1", "2"]:
         print(f"{Fore.RED}Invalid selection. Please choose either 1 or 2.{Style.RESET_ALL}")
         return
 
     try:
-        if mode == '1':
+        if mode == "1":
             input_file = input(f"{Fore.CYAN}Enter the path to the HTML file containing the images (Example: Archive/photos/photo-albums/-15.html): {Style.RESET_ALL}")
             input_file = Validator.validate_input_dir(input_file, mode)
 
@@ -263,7 +249,7 @@ async def main():
             downloader = ImageDownloader(output_dir, batch_size, retries, encoding)
             await downloader.download_images(input_file)
 
-        elif mode == '2':
+        elif mode == "2":
             input_dir = input(f"{Fore.CYAN}Enter the directory containing the HTML files for comment deletion (Example: Archive/comments): {Style.RESET_ALL}")
             input_dir = Validator.validate_input_dir(input_dir, mode)
 
@@ -274,7 +260,7 @@ async def main():
                 raise ValueError(f"{Fore.RED}Error: access_token is required for deleting comments.{Style.RESET_ALL}")
 
             exclude_ids = input(f"{Fore.CYAN}Enter group/user IDs to exclude (comma-separated, e.g., -123456789,123456789): {Style.RESET_ALL}")
-            exclude_ids = [id.strip() for id in exclude_ids.split(',') if id.strip()]
+            exclude_ids = [id.strip() for id in exclude_ids.split(",") if id.strip()]
 
             sleep_time = input(f"{Fore.CYAN}Enter the sleep time between API requests in seconds (default: 1): {Style.RESET_ALL}") or 1
             sleep_time = Validator.validate_sleep_time(sleep_time)
@@ -286,7 +272,7 @@ async def main():
         print(f"{Fore.RED}{str(e)}{Style.RESET_ALL}")
 
     finally:
-        input(f"{Fore.CYAN}Press Enter to exit...{Style.RESET_ALL}")
+        input(f"{Fore.CYAN}Press any button to exit...{Style.RESET_ALL}")
 
 
 if __name__ == "__main__":
