@@ -3,7 +3,6 @@ import os
 import re
 from urllib.parse import urlparse
 import httpx
-from bs4 import BeautifulSoup
 from colorama import init, Fore, Style
 from tqdm import tqdm
 from typing import Union, List, Dict, Tuple
@@ -11,7 +10,6 @@ from typing import Union, List, Dict, Tuple
 init()
 
 class ImageDownloader:
-
     def __init__(self, output_dir: str, batch_size: int, retries: int, encoding: str):
         self.output_dir = output_dir
         self.batch_size = batch_size
@@ -28,7 +26,8 @@ class ImageDownloader:
         filename = os.path.basename(path)
         return ImageDownloader.sanitize_filename(filename)
 
-    async def download_image(self, client: httpx.AsyncClient, img_url: str, img_name: str):
+    async def download_image(self, client: httpx.AsyncClient, img_url: str):
+        img_name = self.get_filename_from_url(img_url)
         attempt = 0
         while attempt < self.retries:
             try:
@@ -41,17 +40,16 @@ class ImageDownloader:
                     print(f"{Fore.RED} Failed to download: {img_url} (status code: {response.status_code}){Style.RESET_ALL}")
             except Exception as e:
                 print(f"{Fore.RED} Error downloading {img_url}: {str(e)}{Style.RESET_ALL}")
-
             attempt += 1
             if attempt < self.retries:
                 print(f"{Fore.YELLOW} Retrying {img_url} in 2 seconds... (Attempt {attempt + 1}){Style.RESET_ALL}")
                 await asyncio.sleep(2)
 
-    async def process_batch(self, batch: List[BeautifulSoup], pbar: tqdm):
+    async def process_batch(self, batch: list, pbar: tqdm):
         async with httpx.AsyncClient() as client:
             tasks = [
-                self.download_image(client, img["src"], self.get_filename_from_url(img["src"]))
-                for img in batch
+                self.download_image(client, img_url)
+                for img_url in batch
             ]
             await asyncio.gather(*tasks)
             pbar.update(len(batch))
@@ -60,8 +58,8 @@ class ImageDownloader:
         with open(input_file, "r", encoding=self.encoding) as file:
             html_content = file.read()
 
-        soup = BeautifulSoup(html_content, "html.parser")
-        img_tags = soup.find_all("img")
+        # Use regex to find all img tags
+        img_tags = re.findall(r'<img\s+[^>]*src="([^"]*)"[^>]*>', html_content)
 
         if not os.path.exists(self.output_dir):
             os.makedirs(self.output_dir)
@@ -74,6 +72,8 @@ class ImageDownloader:
         print(f"{Fore.GREEN}All images have been downloaded.{Style.RESET_ALL}")
 
 
+
+
 class CommentDeleter:
     def __init__(self, access_token: str, sleep_time: float, exclude_ids: List[str]):
         self.access_token = access_token
@@ -81,18 +81,13 @@ class CommentDeleter:
         self.exclude_ids = exclude_ids
 
     @staticmethod
-    def parse_html_file(file_path: str, wall_ids: List[str]) -> None:
+    def parse_html_file(file_path: str) -> None:
         with open(file_path, 'r', encoding='windows-1251') as file:
             content = file.read()
-            soup = BeautifulSoup(content, 'lxml')
-            item_main_divs = soup.find_all('div', class_='item__main')
-            for div in item_main_divs:
-                links = div.find_all('a')
-                for link in links:
-                    href = link.get('href')
-                    if href and 'wall' in href:
-                        wall_id = href.split('/')[-1]
-                        wall_ids.append(wall_id)
+        
+        pattern = r'href="https://vk\.com/(wall-?\d+_\d+(?:\?reply=\d+(?:&thread=\d+)?)?)"'
+        matches = re.findall(pattern, content)
+        return matches
 
     @staticmethod
     def extract_comment_details(wall_id: str) -> Tuple[str, str]:
@@ -137,10 +132,9 @@ class CommentDeleter:
 
     async def delete_comments(self, input_dir: str, output_file: str) -> None:
         wall_ids = []
-
         for filename in os.listdir(input_dir):
             if filename.endswith('.html'):
-                self.parse_html_file(os.path.join(input_dir, filename), wall_ids)
+                wall_ids.extend(self.parse_html_file(os.path.join(input_dir, filename)))
 
         filtered_wall_ids = [
             wall_id for wall_id in wall_ids 
@@ -176,6 +170,7 @@ class CommentDeleter:
                     print(f"{Fore.GREEN} Successfully deleted {successful} comments; {Fore.YELLOW}Failed to delete {failed} comments (possibly already deleted or in closed group/page).{Style.RESET_ALL}")
                 else:
                     print(f"{Fore.RED}Error in API response: {result}{Style.RESET_ALL}")
+                    break
                 await asyncio.sleep(self.sleep_time)
                 pbar.update(1)
 
